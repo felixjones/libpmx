@@ -1,9 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="src\pmx.c" />
+    <Filter Include="src">
+      <UniqueIdentifier>{c95a1dee-bdaa-4f6c-a6b5-4988d9e4bbbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{c9fc8ed9-0e5a-42c8-b103-4aff9bc1d51c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\pmx.h" />
+    <ClCompile Include="src\pmx.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\pmx.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
