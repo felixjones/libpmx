@@ -1,3 +1,8 @@
+### libpmx ###
+libpmx/
+bin/
+lib/
+
 # Created by https://www.gitignore.io
 
 ### Windows ###
