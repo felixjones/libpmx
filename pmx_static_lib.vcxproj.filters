@@ -16,6 +16,8 @@
     <ClCompile Include="src\pmx_alloc.c" />
     <ClCompile Include="src\pmx_header.c" />
     <ClCompile Include="src\pmx_reader.c" />
+    <ClCompile Include="src\pmx_model_info.c" />
+    <ClCompile Include="src\pmx_print.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\pmx.h">
@@ -26,6 +28,8 @@
     <ClInclude Include="include\pmx_alloc.h" />
     <ClInclude Include="include\pmx_header.h" />
     <ClInclude Include="include\pmx_reader.h" />
-    <ClInclude Include="include\pmx_entries_def.h" />
+    <ClInclude Include="include\pmx_model_info.h" />
+    <ClInclude Include="include\pmx_index_size.h" />
+    <ClInclude Include="include\pmx_print.h" />
   </ItemGroup>
 </Project>

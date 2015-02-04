@@ -16,13 +16,10 @@ typedef float	pmx_vec2[2];
 typedef float	pmx_vec3[3];
 typedef float	pmx_vec4[4];
 
-#include <libpmx/pmx_text.h>
-#include <libpmx/pmx_index.h>
 #include <libpmx/pmx_alloc.h>
-#include <libpmx/pmx_header.h>
-#include <libpmx/pmx_reader.h>
+#include <libpmx/pmx_print.h>
 
-#define PMX_NULL		( 0x0 )
+#define PMX_NULL	( 0x0 )
 
 static __inline void * pmx_ptr_add( void * const _ptr, const pmx_int _val ) {
 	return ( ( ( pmx_byte * )_ptr ) + _val );

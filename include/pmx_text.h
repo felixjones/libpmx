@@ -18,4 +18,6 @@ void		pmx_text_destroy( pmx_text * const _text );
 pmx_int		pmx_text_set_utf8( pmx_text * const _text, const char * const _cstr );
 pmx_int		pmx_text_set_utf16( pmx_text * const _text, const wchar_t * const _wstr );
 
+pmx_int		pmx_text_print( pmx_text * const _text, const pmx_byte _encoding );
+
 #endif
