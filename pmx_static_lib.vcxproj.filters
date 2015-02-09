@@ -12,24 +12,24 @@
     <ClCompile Include="src\pmx.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\pmx_text.c" />
     <ClCompile Include="src\pmx_alloc.c" />
     <ClCompile Include="src\pmx_header.c" />
-    <ClCompile Include="src\pmx_reader.c" />
-    <ClCompile Include="src\pmx_model_info.c" />
     <ClCompile Include="src\pmx_print.c" />
+    <ClCompile Include="src\pmx_minfo.c" />
+    <ClCompile Include="src\pmx_read.c" />
+    <ClCompile Include="src\pmx_text.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\pmx.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="include\pmx_text.h" />
-    <ClInclude Include="include\pmx_index.h" />
     <ClInclude Include="include\pmx_alloc.h" />
     <ClInclude Include="include\pmx_header.h" />
-    <ClInclude Include="include\pmx_reader.h" />
-    <ClInclude Include="include\pmx_model_info.h" />
-    <ClInclude Include="include\pmx_index_size.h" />
     <ClInclude Include="include\pmx_print.h" />
+    <ClInclude Include="include\pmx_read.h" />
+    <ClInclude Include="include\pmx_info.h" />
+    <ClInclude Include="include\pmx_isize.h" />
+    <ClInclude Include="include\pmx_minfo.h" />
   </ItemGroup>
 </Project>
