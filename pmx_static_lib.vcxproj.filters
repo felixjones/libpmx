@@ -18,6 +18,8 @@
     <ClCompile Include="src\pmx_minfo.c" />
     <ClCompile Include="src\pmx_read.c" />
     <ClCompile Include="src\pmx_text.c" />
+    <ClCompile Include="src\pmx_weight.c" />
+    <ClCompile Include="src\pmx_vertex.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\pmx.h">
@@ -31,5 +33,7 @@
     <ClInclude Include="include\pmx_info.h" />
     <ClInclude Include="include\pmx_isize.h" />
     <ClInclude Include="include\pmx_minfo.h" />
+    <ClInclude Include="include\pmx_vertex.h" />
+    <ClInclude Include="include\pmx_weight.h" />
   </ItemGroup>
 </Project>

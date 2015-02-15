@@ -26,6 +26,8 @@
     <ClCompile Include="src\pmx_print.c" />
     <ClCompile Include="src\pmx_read.c" />
     <ClCompile Include="src\pmx_text.c" />
+    <ClCompile Include="src\pmx_vertex.c" />
+    <ClCompile Include="src\pmx_weight.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\pmx.h" />
@@ -37,6 +39,8 @@
     <ClInclude Include="include\pmx_print.h" />
     <ClInclude Include="include\pmx_read.h" />
     <ClInclude Include="include\pmx_text.h" />
+    <ClInclude Include="include\pmx_vertex.h" />
+    <ClInclude Include="include\pmx_weight.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1A0C2BF3-F764-4CC7-B237-7F240CF8BE98}</ProjectGuid>
