@@ -1,6 +1,6 @@
 #include "pmx_alloc.h"
 
-#include <malloc.h>
+#include <stdlib.h>
 
 static pmx_alloc_t	pmx_alloc_f = PMX_ALLOC_STD;
 
