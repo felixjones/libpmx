@@ -4,7 +4,7 @@
 
 static pmx_print_t	pmx_print_f = PMX_PRINT_STD;
 
-pmx_int pmx_print( const pmx_byte * const _format, ... ) {
+pmx_int pmx_print( const char * const _format, ... ) {
 	pmx_int retVal;
 	va_list argList;
 	va_start( argList, _format );

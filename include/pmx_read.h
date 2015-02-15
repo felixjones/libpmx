@@ -31,9 +31,9 @@ enum pmx_data_e {
 	PMX_DATA_JOINT		= ( ( 'J' << 24 ) | ( 'O' << 16 ) | ( 'N' << 8 ) | 'T' )
 };
 
-typedef pmx_int	( * pmx_read_fread_t )( struct pmx_read_s * const _read, void * const _dest, const pmx_int _length );
-typedef pmx_int	( * pmx_read_fseek_t )( struct pmx_read_s * const _read, const pmx_int _offset, const pmx_int _origin );
-typedef pmx_int	( * pmx_read_ftell_t )( struct pmx_read_s * const _read );
+typedef pmx_int	( * pmx_read_fread_t )( void * const _read, void * const _dest, const pmx_int _length );
+typedef pmx_int	( * pmx_read_fseek_t )( void * const _read, const pmx_int _offset, const pmx_int _origin );
+typedef pmx_int	( * pmx_read_ftell_t )( void * const _read );
 
 typedef struct pmx_read_s {
 	pmx_int				type;

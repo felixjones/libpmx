@@ -69,10 +69,16 @@ static pmx_int pmx_read_buffer_fseek( pmx_read_buffer * const _read, const pmx_i
 	switch ( _origin ) {
 	case PMX_READ_SEEK_SET:
 		newPos = pmx_ptr_add( _read->start, _offset );
+        break;
 	case PMX_READ_SEEK_CUR:
-		newPos = pmx_ptr_add( _read->cur, _offset );
+        newPos = pmx_ptr_add( _read->cur, _offset );
+        break;
 	case PMX_READ_SEEK_END:
-		newPos = pmx_ptr_add( _read->end, _offset );
+        newPos = pmx_ptr_add( _read->end, _offset );
+        break;
+    default:
+        newPos = PMX_NULL;
+        break;
 	}
 	
 	if ( newPos <= _read->end && newPos >= _read->start ) {
@@ -301,7 +307,6 @@ pmx_int pmx_read_sizeof_vertex( pmx_read * const _read, const pmx_int _count ) {
 }
 
 pmx_int pmx_read_sizeof_face( pmx_read * const _read, const pmx_int _count ) {
-	const pmx_int offset = _read->offsetFace;
 	pmx_int size = 4;
 	pmx_int count = _count; // count
 	
@@ -557,7 +562,7 @@ static const char * pmx_read_alloc_str( pmx_read * const _read ) {
 }
 
 const char * pmx_read_gets_minfo( pmx_read * const _read, const pmx_int _var ) {
-	pmx_int nameLocal, nameGlobal, commentLocal, commentGlobal;
+	pmx_int nameLocal, nameGlobal, commentLocal;
 	
 	_read->fseek_f( _read, PMX_OFFSET_MINFO, PMX_READ_SEEK_SET );
 	if ( _var == PMX_MINFO_NAME_LOCAL ) {
