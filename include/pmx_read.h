@@ -18,6 +18,8 @@ enum pmx_read_seek_e {
 };
 
 enum pmx_data_e {
+	PMX_DATA_MINFO		= ( ( 'M' << 24 ) | ( 'I' << 16 ) | ( 'F' << 8 ) | 'O' ),
+
 	PMX_DATA_VERTEX		= ( ( 'V' << 24 ) | ( 'R' << 16 ) | ( 'T' << 8 ) | 'X' ),
 	PMX_DATA_FACE		= ( ( 'F' << 24 ) | ( 'A' << 16 ) | ( 'C' << 8 ) | 'E' ),
 	PMX_DATA_TEXTURE	= ( ( 'T' << 24 ) | ( 'X' << 16 ) | ( 'U' << 8 ) | 'E' ),
@@ -66,32 +68,27 @@ typedef struct pmx_read_data_struct_s {
 	pmx_int		bufferLen;
 } pmx_read_data_struct;
 
-typedef struct pmx_read_text_struct_s {
-	pmx_int		type;
-	pmx_int		index;
-	pmx_text *	text;
-} pmx_read_text_struct;
+pmx_read *		pmx_read_create_file( void * const _file );
+pmx_read *		pmx_read_create_buffer( void * const _buffer, const pmx_int _length );
+void			pmx_read_destroy( pmx_read * const _read );
 
-pmx_read *	pmx_read_create_file( void * const _file );
-pmx_read *	pmx_read_create_buffer( void * const _buffer, const pmx_int _length );
-void		pmx_read_destroy( pmx_read * const _read );
+pmx_byte		pmx_read_header( pmx_read * const _read, pmx_header * const _header );
+pmx_byte		pmx_read_info( pmx_read * const _read, pmx_info * const _info );
+pmx_byte		pmx_read_isize( pmx_read * const _read, pmx_isize * const _isize );
+pmx_byte		pmx_read_minfo( pmx_read * const _read, pmx_minfo * const _minfo );
 
-pmx_byte	pmx_read_header( pmx_read * const _read, pmx_header * const _header );
-pmx_byte	pmx_read_info( pmx_read * const _read, pmx_info * const _info );
-pmx_byte	pmx_read_isize( pmx_read * const _read, pmx_isize * const _isize );
-pmx_byte	pmx_read_minfo( pmx_read * const _read, pmx_minfo * const _minfo );
+pmx_int			pmx_read_count_vertex( pmx_read * const _read );
+pmx_int			pmx_read_count_face( pmx_read * const _read );
+pmx_int			pmx_read_count_texture( pmx_read * const _read );
+pmx_int			pmx_read_count_material( pmx_read * const _read );
 
-pmx_int		pmx_read_count_vertex( pmx_read * const _read );
-pmx_int		pmx_read_count_face( pmx_read * const _read );
-pmx_int		pmx_read_count_texture( pmx_read * const _read );
-pmx_int		pmx_read_count_material( pmx_read * const _read );
+pmx_int			pmx_read_sizeof_vertex( pmx_read * const _read, const pmx_int _count );
+pmx_int			pmx_read_sizeof_face( pmx_read * const _read, const pmx_int _count );
+pmx_int			pmx_read_sizeof_texture( pmx_read * const _read, const pmx_int _count );
+pmx_int			pmx_read_sizeof_material( pmx_read * const _read, const pmx_int _count );
 
-pmx_int		pmx_read_sizeof_vertex( pmx_read * const _read, const pmx_int _count );
-pmx_int		pmx_read_sizeof_face( pmx_read * const _read, const pmx_int _count );
-pmx_int		pmx_read_sizeof_texture( pmx_read * const _read, const pmx_int _count );
-pmx_int		pmx_read_sizeof_material( pmx_read * const _read, const pmx_int _count );
-
-pmx_int		pmx_read_data( pmx_read * const _read, pmx_read_data_struct * const _struct );
-pmx_int		pmx_read_data_text( pmx_read * const _read, pmx_read_text_struct * const _struct );
+pmx_int			pmx_read_data( pmx_read * const _read, pmx_read_data_struct * const _struct );
+const char *	pmx_read_gets( pmx_read * const _read, const pmx_int _type, const pmx_int _var, const pmx_int _index );
+const wchar_t *	pmx_read_getls( pmx_read * const _read, const pmx_int _type, const pmx_int _var, const pmx_int _index );
 
 #endif

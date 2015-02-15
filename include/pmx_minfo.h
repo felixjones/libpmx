@@ -4,6 +4,13 @@
 #include <libpmx/pmx.h>
 #include <libpmx/pmx_text.h>
 
+enum pmx_minfo_mask_e {
+	PMX_MINFO_NAME_LOCAL		= 0x1 << 0,
+	PMX_MINFO_NAME_GLOBAL		= 0x1 << 1,
+	PMX_MINFO_COMMENT_LOCAL		= 0x1 << 2,
+	PMX_MINFO_COMMENT_GLOBAL	= 0x1 << 3
+};
+
 typedef struct pmx_minfo_s {
 	struct {
 		pmx_text	local;

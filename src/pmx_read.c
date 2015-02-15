@@ -527,6 +527,80 @@ pmx_int pmx_read_data( pmx_read * const _read, pmx_read_data_struct * const _str
 	return 0;
 }
 
-pmx_int pmx_read_data_text( pmx_read * const _read, pmx_read_text_struct * const _struct ) {
-	return 0;
+static const char * pmx_read_alloc_str( pmx_read * const _read ) {
+	pmx_text text;
+	char * outChars = PMX_NULL;
+
+	pmx_read_text( _read, &text );
+
+	if ( _read->info.textTypeEncoding ) {
+		outChars = ( char * )pmx_alloc( PMX_NULL, text.size + 1 );
+
+		memcpy( outChars, text.string.utf8, text.size );
+		outChars[text.size] = 0;
+
+		pmx_alloc( text.string.utf8, 0 );
+	} else {
+		pmx_int ii;
+		const pmx_int hSize = text.size / 2;
+
+		outChars = ( char * )pmx_alloc( PMX_NULL, hSize + 1 );
+
+		for ( ii = 0; ii < hSize; ii++ ) {
+			outChars[ii] = text.string.utf8[ii * 2];
+		}
+
+		outChars[hSize] = 0;
+	}
+
+	return outChars;
+}
+
+const char * pmx_read_gets_minfo( pmx_read * const _read, const pmx_int _var ) {
+	pmx_int nameLocal, nameGlobal, commentLocal, commentGlobal;
+	
+	_read->fseek_f( _read, PMX_OFFSET_MINFO, PMX_READ_SEEK_SET );
+	if ( _var == PMX_MINFO_NAME_LOCAL ) {
+		return pmx_read_alloc_str( _read );
+	}
+
+	_read->fread_f( _read, &nameLocal, 4 );
+	_read->fseek_f( _read, nameLocal, PMX_READ_SEEK_CUR );
+	if ( _var == PMX_MINFO_NAME_GLOBAL ) {
+		return pmx_read_alloc_str( _read );
+	}
+
+	_read->fread_f( _read, &nameGlobal, 4 );
+	_read->fseek_f( _read, nameGlobal, PMX_READ_SEEK_CUR );
+	if ( _var == PMX_MINFO_COMMENT_LOCAL ) {
+		return pmx_read_alloc_str( _read );
+	}
+
+	_read->fread_f( _read, &commentLocal, 4 );
+	_read->fseek_f( _read, commentLocal, PMX_READ_SEEK_CUR );
+	if ( _var == PMX_MINFO_COMMENT_GLOBAL ) {
+		return pmx_read_alloc_str( _read );
+	}
+	
+	return PMX_NULL;
+}
+
+const wchar_t * pmx_read_getls_minfo( pmx_read * const _read, const pmx_int _var ) {
+	return PMX_NULL;
+}
+
+const char * pmx_read_gets( pmx_read * const _read, const pmx_int _type, const pmx_int _var, const pmx_int _index ) {
+	switch ( _type ) {
+	case PMX_DATA_MINFO:
+		return pmx_read_gets_minfo( _read, _var );
+	}
+	return PMX_NULL;
+}
+
+const wchar_t * pmx_read_getls( pmx_read * const _read, const pmx_int _type, const pmx_int _var, const pmx_int _index ) {
+	switch ( _type ) {
+	case PMX_DATA_MINFO:
+		return pmx_read_getls_minfo( _read, _var );
+	}
+	return PMX_NULL;
 }

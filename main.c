@@ -30,6 +30,9 @@ int main( int argc, char ** argv ) {
 			pmx_byte ii = 0;
 			pmx_byte cc = 0;
 			pmx_short offset = 0;
+
+			const char * const commentLocal = pmx_read_gets( read, PMX_DATA_MINFO, PMX_MINFO_COMMENT_LOCAL, 0 );
+			pmx_alloc( commentLocal, 0 );
 			
 			vertexRead.start = 48;
 			vertexRead.count = 100;
