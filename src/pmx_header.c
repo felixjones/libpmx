@@ -26,9 +26,11 @@ pmx_byte pmx_header_check( const pmx_header * const _header ) {
 	pmx_byte errMask = 0x0;
 
 	if ( pmx_signature_compare( _header->signature ) != 0 ) {
+		pmx_print_error( "header", "invalid signature \"%c%c%c%c\" - expected \"PMX \"", _header->signature[0], _header->signature[1], _header->signature[2], _header->signature[3] );
 		errMask |= 0x1;
 	}
 	if ( _header->version != PMX_HEADER_VERSION ) {
+		pmx_print_error( "header", "invalid version %f - expected %f", _header->version, PMX_HEADER_VERSION );
 		errMask |= 0x2;
 	}
 

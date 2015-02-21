@@ -26,17 +26,93 @@ enum pmx_read_bits_e {
 	PMX_BIT_OFFSET_ALL		= ( PMX_BIT_OFFSET_VERTEX | PMX_BIT_OFFSET_FACE | PMX_BIT_OFFSET_TEXTURE )
 };
 
-typedef struct pmx_read_file_s {
+typedef struct pmx_read_private_s {
 	pmx_read	super;
-	FILE *		file;
+
+	pmx_header	header;
+	pmx_info	info;
+	pmx_isize	isize;
+	pmx_minfo	minfo;
+
+	pmx_int		offsetVertex;
+	pmx_int		offsetFace;
+	pmx_int		offsetTexture;
+	pmx_int		offsetMaterial;
+	
+	pmx_int		countVertex;
+	pmx_int		countFace;
+	pmx_int		countTexture;
+	pmx_int		countMaterial;
+
+	pmx_byte *	scratch;
+} pmx_read_private;
+
+typedef struct pmx_read_file_s {
+	pmx_read_private	super;
+	FILE *				file;
 } pmx_read_file;
 
 typedef struct pmx_read_buffer_s {
-	pmx_read	super;
-	void *		start;
-	void *		end;
-	void *		cur;
+	pmx_read_private	super;
+	void *				start;
+	void *				end;
+	void *				cur;
 } pmx_read_buffer;
+
+typedef struct pmx_scratch_s {
+	pmx_byte **	pointers;
+	pmx_int		count;
+} pmx_scratch;
+
+static pmx_byte * pmx_read_scratch_alloc( pmx_read * const _read, const pmx_int _size ) {
+	pmx_scratch * scratch;
+	pmx_int count;
+	pmx_byte ** pointers;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	
+	if ( !read->scratch ) {
+		read->scratch = ( pmx_byte * )pmx_alloc( PMX_NULL, sizeof( pmx_scratch ) );
+		memset( read->scratch, 0, sizeof( pmx_scratch ) );
+	}
+
+	scratch = ( pmx_scratch * )read->scratch;
+	count = scratch->count + 1;
+	pointers = ( pmx_byte ** )pmx_alloc( scratch->pointers, count * sizeof( pmx_byte * ) );
+
+	if ( pointers ) {
+		pmx_byte * const page = ( pmx_byte * )pmx_alloc( PMX_NULL, _size );
+
+		pointers[scratch->count] = page;
+
+		scratch->pointers = pointers;
+		scratch->count = count;
+
+		return page;
+	}
+
+	return PMX_NULL;
+}
+
+static pmx_int pmx_read_scratch_dealloc( pmx_read * const _read ) {
+	pmx_scratch * scratch;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+
+	if ( !read->scratch ) {
+		return;
+	}
+
+	scratch = ( pmx_scratch * )read->scratch;
+
+	while ( scratch->count-- ) {
+		pmx_alloc( scratch->pointers[scratch->count], 0 );
+	}
+
+	pmx_alloc( scratch->pointers, 0 );
+	pmx_alloc( read->scratch, 0 );
+	read->scratch = PMX_NULL;
+
+	return 0;
+}
 
 static pmx_int pmx_read_file_fread( pmx_read_file * const _read, void * const _dest, const pmx_int _length ) {
 	return ( pmx_int )fread( _dest, 1, ( size_t )_length, _read->file );
@@ -105,164 +181,182 @@ pmx_byte pmx_read_text( pmx_read * const _read, pmx_text * const _text ) {
 pmx_read * pmx_read_create_file( void * const _file ) {
 	pmx_read_file * const read = ( pmx_read_file * )pmx_alloc( PMX_NULL, sizeof( pmx_read_file ) );
 	memset( read, 0, sizeof( *read ) );
-
-	read->super.type = PMX_READ_FILE;
-	read->super.fread_f = ( pmx_read_fread_t )pmx_read_file_fread;
-	read->super.fseek_f = ( pmx_read_fseek_t )pmx_read_file_fseek;
-	read->super.ftell_f = ( pmx_read_ftell_t )pmx_read_file_ftell;
+	
+	read->super.super.type = PMX_READ_FILE;
+	read->super.super.fread_f = ( pmx_read_fread_t )pmx_read_file_fread;
+	read->super.super.fseek_f = ( pmx_read_fseek_t )pmx_read_file_fseek;
+	read->super.super.ftell_f = ( pmx_read_ftell_t )pmx_read_file_ftell;
 
 	read->file = ( FILE * )_file;
 
-	return &read->super;
+	return &read->super.super;
 }
 
 pmx_read * pmx_read_create_buffer( void * const _buffer, const pmx_int _length ) {
 	pmx_read_buffer * const read = ( pmx_read_buffer * )pmx_alloc( PMX_NULL, sizeof( pmx_read_buffer ) );
 	memset( read, 0, sizeof( *read ) );
 	
-	read->super.type = PMX_READ_BUFFER;
-	read->super.fread_f = ( pmx_read_fread_t )pmx_read_buffer_fread;
-	read->super.fseek_f = ( pmx_read_fseek_t )pmx_read_buffer_fseek;
-	read->super.ftell_f = ( pmx_read_ftell_t )pmx_read_buffer_ftell;
+	read->super.super.type = PMX_READ_BUFFER;
+	read->super.super.fread_f = ( pmx_read_fread_t )pmx_read_buffer_fread;
+	read->super.super.fseek_f = ( pmx_read_fseek_t )pmx_read_buffer_fseek;
+	read->super.super.ftell_f = ( pmx_read_ftell_t )pmx_read_buffer_ftell;
 
 	read->start = _buffer;
 	read->cur = read->start;
 	read->end = pmx_ptr_add( read->start, _length );
 
-	return &read->super;
+	return &read->super.super;
 }
 
 void pmx_read_destroy( pmx_read * const _read ) {
-	pmx_alloc( _read->minfo.name.local.string.utf8, 0 );
-	pmx_alloc( _read->minfo.name.global.string.utf8, 0 );
-	
-	pmx_alloc( _read->minfo.comment.local.string.utf8, 0 );
-	pmx_alloc( _read->minfo.comment.global.string.utf8, 0 );
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	pmx_read_scratch_dealloc( _read );
 
-	pmx_alloc( _read, 0 );
+	pmx_alloc( read->minfo.name.local.string.utf8, 0 );
+	pmx_alloc( read->minfo.name.global.string.utf8, 0 );
+	
+	pmx_alloc( read->minfo.comment.local.string.utf8, 0 );
+	pmx_alloc( read->minfo.comment.global.string.utf8, 0 );
+
+	pmx_alloc( read, 0 );
 }
 
 pmx_byte pmx_read_header( pmx_read * const _read, pmx_header * const _header ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
 	_read->fseek_f( _read, PMX_OFFSET_HEADER, PMX_READ_SEEK_SET );
 
-	_read->fread_f( _read, _read->header.signature, sizeof( _read->header.signature ) );
-	_read->fread_f( _read, &_read->header.version, sizeof( _read->header.version ) );
-
-	if ( pmx_header_check( &_read->header ) == 0 ) {
-		pmx_read_info( _read, PMX_NULL );
-		pmx_read_isize( _read, PMX_NULL );
-		pmx_read_minfo( _read, PMX_NULL );
-		
-		_read->offsetVertex = PMX_OFFSET_MINFO + pmx_minfo_size( &_read->minfo );
-		_read->offsetFace = _read->offsetVertex + pmx_read_sizeof_vertex( _read, pmx_read_count_vertex( _read ) );
-		_read->offsetTexture = _read->offsetFace + pmx_read_sizeof_face( _read, pmx_read_count_face( _read ) );
-		_read->offsetMaterial = _read->offsetTexture + pmx_read_sizeof_texture( _read, pmx_read_count_texture( _read ) );
-	}
-
+	_read->fread_f( _read, read->header.signature, sizeof( read->header.signature ) );
+	_read->fread_f( _read, &read->header.version, sizeof( read->header.version ) );
+	
 	if ( _header ) {
-		memcpy( _header, &_read->header, sizeof( *_header ) );
+		memcpy( _header, &read->header, sizeof( *_header ) );
 	}
 
 	return 0;
 }
 
 pmx_byte pmx_read_info( pmx_read * const _read, pmx_info * const _info ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
 	_read->fseek_f( _read, PMX_OFFSET_INFO, PMX_READ_SEEK_SET );
 
-	_read->fread_f( _read, &_read->info.dataCount, sizeof( _read->info.dataCount ) );
-	_read->fread_f( _read, &_read->info.textTypeEncoding, sizeof( _read->info.textTypeEncoding ) );
-	_read->fread_f( _read, &_read->info.additionalUVCount, sizeof( _read->info.additionalUVCount ) );
+	_read->fread_f( _read, &read->info.dataCount, sizeof( read->info.dataCount ) );
+	_read->fread_f( _read, &read->info.textTypeEncoding, sizeof( read->info.textTypeEncoding ) );
+	_read->fread_f( _read, &read->info.additionalUVCount, sizeof( read->info.additionalUVCount ) );
 	
 	if ( _info ) {
-		memcpy( _info, &_read->info, sizeof( *_info ) );
+		memcpy( _info, &read->info, sizeof( *_info ) );
 	}
+
+	pmx_read_isize( _read, PMX_NULL );
+	pmx_read_minfo( _read, PMX_NULL );
+		
+	read->offsetVertex = PMX_OFFSET_MINFO + pmx_minfo_size( &read->minfo );
+	read->offsetFace = read->offsetVertex + pmx_read_sizeof_vertex( _read, pmx_read_count_vertex( _read ) );
+	read->offsetTexture = read->offsetFace + pmx_read_sizeof_face( _read, pmx_read_count_face( _read ) );
+	read->offsetMaterial = read->offsetTexture + pmx_read_sizeof_texture( _read, pmx_read_count_texture( _read ) );
 
 	return 0;
 }
 
 pmx_byte pmx_read_isize( pmx_read * const _read, pmx_isize * const _isize ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
 	_read->fseek_f( _read, PMX_OFFSET_ISIZE, PMX_READ_SEEK_SET );
 
-	_read->fread_f( _read, &_read->isize.vertex, sizeof( _read->isize.vertex ) );
-	_read->fread_f( _read, &_read->isize.texture, sizeof( _read->isize.texture ) );
-	_read->fread_f( _read, &_read->isize.material, sizeof( _read->isize.material ) );
-	_read->fread_f( _read, &_read->isize.bone, sizeof( _read->isize.bone ) );
-	_read->fread_f( _read, &_read->isize.morph, sizeof( _read->isize.morph ) );
-	_read->fread_f( _read, &_read->isize.rigidBody, sizeof( _read->isize.rigidBody ) );
+	_read->fread_f( _read, &read->isize.vertex, sizeof( read->isize.vertex ) );
+	_read->fread_f( _read, &read->isize.texture, sizeof( read->isize.texture ) );
+	_read->fread_f( _read, &read->isize.material, sizeof( read->isize.material ) );
+	_read->fread_f( _read, &read->isize.bone, sizeof( read->isize.bone ) );
+	_read->fread_f( _read, &read->isize.morph, sizeof( read->isize.morph ) );
+	_read->fread_f( _read, &read->isize.rigidBody, sizeof( read->isize.rigidBody ) );
 	
 	if ( _isize ) {
-		memcpy( _isize, &_read->isize, sizeof( *_isize ) );
+		memcpy( _isize, &read->isize, sizeof( *_isize ) );
 	}
 
 	return 0;
 }
 
 pmx_byte pmx_read_minfo( pmx_read * const _read, pmx_minfo * const _minfo ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
 	_read->fseek_f( _read, PMX_OFFSET_MINFO, PMX_READ_SEEK_SET );
 	
-	pmx_read_text( _read, &_read->minfo.name.local );
-	pmx_read_text( _read, &_read->minfo.name.global );
+	pmx_read_text( _read, &read->minfo.name.local );
+	pmx_read_text( _read, &read->minfo.name.global );
 	
-	pmx_read_text( _read, &_read->minfo.comment.local );
-	pmx_read_text( _read, &_read->minfo.comment.global );
+	pmx_read_text( _read, &read->minfo.comment.local );
+	pmx_read_text( _read, &read->minfo.comment.global );
 	
 	if ( _minfo ) {
-		memcpy( _minfo, &_read->minfo, sizeof( *_minfo ) );
+		memcpy( _minfo, &read->minfo, sizeof( *_minfo ) );
 	}
 
 	return 0;
 }
 
 pmx_int pmx_read_count_vertex( pmx_read * const _read ) {
-	pmx_int count = 0;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	if ( read->countVertex < 1 ) {
+		pmx_int count = 0;
 
-	if ( _read->offsetVertex ) {
-		_read->fseek_f( _read, _read->offsetVertex, PMX_READ_SEEK_SET );
-		_read->fread_f( _read, &count, sizeof( count ) );
-	}
+		if ( read->offsetVertex ) {
+			_read->fseek_f( _read, read->offsetVertex, PMX_READ_SEEK_SET );
+			_read->fread_f( _read, &count, sizeof( count ) );
+		}
 	
-	_read->countVertex = count;
-	return _read->countVertex;
+		read->countVertex = count;
+	}
+	return read->countVertex;
 }
 
 pmx_int pmx_read_count_face( pmx_read * const _read ) {
-	pmx_int count = 0;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	if ( read->countFace < 1 ) {
+		pmx_int count = 0;
 	
-	if ( _read->offsetFace ) {
-		_read->fseek_f( _read, _read->offsetFace, PMX_READ_SEEK_SET );
-		_read->fread_f( _read, &count, sizeof( count ) );
+		if ( read->offsetFace ) {
+			_read->fseek_f( _read, read->offsetFace, PMX_READ_SEEK_SET );
+			_read->fread_f( _read, &count, sizeof( count ) );
+		}
+	
+		read->countFace = count / 3;
 	}
-	
-	_read->countFace = count / 3;
-	return _read->countFace;
+	return read->countFace;
 }
 
 pmx_int pmx_read_count_texture( pmx_read * const _read ) {
-	pmx_int count = 0;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	if ( read->countTexture < 1 ) {
+		pmx_int count = 0;
 	
-	if ( _read->offsetTexture ) {
-		_read->fseek_f( _read, _read->offsetTexture, PMX_READ_SEEK_SET );
-		_read->fread_f( _read, &count, sizeof( count ) );
+		if ( read->offsetTexture ) {
+			_read->fseek_f( _read, read->offsetTexture, PMX_READ_SEEK_SET );
+			_read->fread_f( _read, &count, sizeof( count ) );
+		}
+
+		read->countTexture = count;
 	}
 
-	_read->countTexture = count;
-	return _read->countTexture;
+	return read->countTexture;
 }
 
 pmx_int pmx_read_count_material( pmx_read * const _read ) {
-	pmx_int count = 0;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	if ( read->countMaterial < 1 ) {
+		pmx_int count = 0;
 	
-	if ( _read->offsetMaterial ) {
-		_read->fseek_f( _read, _read->offsetMaterial, PMX_READ_SEEK_SET );
-		_read->fread_f( _read, &count, sizeof( count ) );
-	}
+		if ( read->offsetMaterial ) {
+			_read->fseek_f( _read, read->offsetMaterial, PMX_READ_SEEK_SET );
+			_read->fread_f( _read, &count, sizeof( count ) );
+		}
 
-	_read->countMaterial = count;
-	return _read->countMaterial;
+		read->countMaterial = count;
+	}
+	return read->countMaterial;
 }
 
 pmx_int pmx_read_sizeof_vertex( pmx_read * const _read, const pmx_int _count ) {
-	const pmx_int offset = _read->offsetVertex;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	const pmx_int offset = read->offsetVertex;
 	pmx_int size = 4;
 	pmx_int count = _count; // count
 	
@@ -274,29 +368,29 @@ pmx_int pmx_read_sizeof_vertex( pmx_read * const _read, const pmx_int _count ) {
 		pmx_byte wType;
 
 		size += 32; // pos, norm, uv
-		size += 16 * _read->info.additionalUVCount; // additional uv
+		size += 16 * read->info.additionalUVCount; // additional uv
 
 		_read->fseek_f( _read, offset + size, PMX_READ_SEEK_SET );
 		size += _read->fread_f( _read, &wType, 1 );
 
 		switch ( wType ) {
 		case 0:
-			size += _read->isize.bone;
+			size += read->isize.bone;
 			break;
 		case 1:
-			size += _read->isize.bone * 2;
+			size += read->isize.bone * 2;
 			size += 4;
 			break;
 		case 2:
-			size += _read->isize.bone * 4;
+			size += read->isize.bone * 4;
 			size += 16;
 			break;
 		case 3:
-			size += _read->isize.bone * 2;
+			size += read->isize.bone * 2;
 			size += 40;
 			break;
 		default:
-			pmx_print( "Unknown BDEF\n" );
+			pmx_print_error( "read", "Unknown BDEF\n" );
 			break;
 		}
 
@@ -307,6 +401,7 @@ pmx_int pmx_read_sizeof_vertex( pmx_read * const _read, const pmx_int _count ) {
 }
 
 pmx_int pmx_read_sizeof_face( pmx_read * const _read, const pmx_int _count ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
 	pmx_int size = 4;
 	pmx_int count = _count; // count
 	
@@ -314,7 +409,7 @@ pmx_int pmx_read_sizeof_face( pmx_read * const _read, const pmx_int _count ) {
 		count = pmx_read_count_face( _read );
 	}
 
-	size += ( count * _read->isize.vertex * 3 );
+	size += ( count * read->isize.vertex * 3 );
 
 	return size;
 }
@@ -329,16 +424,14 @@ static pmx_int pmx_read_sizeof_text( pmx_read * const _read ) {
 
 	size = text.size + 4;
 
-	pmx_text_print( &text, &_read->info );
-	pmx_print( "\n", text.size );
-
 	pmx_alloc( text.string.utf8, 0 );
 
 	return size;
 }
 
 pmx_int pmx_read_sizeof_texture( pmx_read * const _read, const pmx_int _count ) {
-	const pmx_int offset = _read->offsetTexture;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	const pmx_int offset = read->offsetTexture;
 	pmx_int size = 4;
 	pmx_int count = _count; // count
 
@@ -356,7 +449,8 @@ pmx_int pmx_read_sizeof_texture( pmx_read * const _read, const pmx_int _count ) 
 }
 
 pmx_int pmx_read_sizeof_material( pmx_read * const _read, const pmx_int _count ) {
-	const pmx_int offset = _read->offsetMaterial;
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	const pmx_int offset = read->offsetMaterial;
 	pmx_int size = 4;
 	pmx_int count = _count; // count
 
@@ -373,7 +467,7 @@ pmx_int pmx_read_sizeof_material( pmx_read * const _read, const pmx_int _count )
 
 		size += 65; // diffuse, specular colour, specularity, ambient colour, drawing mode, edge colour, edge size
 
-		size += _read->isize.texture * 2; // Texture index, environment index
+		size += read->isize.texture * 2; // Texture index, environment index
 
 		size += 1; // Environment mode
 			
@@ -385,7 +479,7 @@ pmx_int pmx_read_sizeof_material( pmx_read * const _read, const pmx_int _count )
 		if ( toonMode ) {
 			size += 1; // Inbuilt
 		} else {
-			size += _read->isize.texture; // Texture index
+			size += read->isize.texture; // Texture index
 		}
 		
 		_read->fseek_f( _read, offset + size, PMX_READ_SEEK_SET );
@@ -398,6 +492,7 @@ pmx_int pmx_read_sizeof_material( pmx_read * const _read, const pmx_int _count )
 }
 
 static pmx_int pmx_read_vertex( pmx_read * const _read, pmx_read_data_struct * const _struct ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
 	pmx_int ii = 0;
 	const pmx_int startByte = pmx_read_sizeof_vertex( _read, _struct->start );
 	pmx_int span = 0;
@@ -419,7 +514,7 @@ static pmx_int pmx_read_vertex( pmx_read * const _read, pmx_read_data_struct * c
 	}
 	if ( ( _struct->mask & PMX_VERTEX_ADDITIONAL_UV ) == PMX_VERTEX_ADDITIONAL_UV ) {
 		_struct->maskOrder[order++] = PMX_VERTEX_ADDITIONAL_UV;
-		span += 16 * _read->info.additionalUVCount;
+		span += 16 * read->info.additionalUVCount;
 	}
 	if ( ( _struct->mask & PMX_VERTEX_WEIGHT_TYPE ) == PMX_VERTEX_WEIGHT_TYPE ) {
 		_struct->maskOrder[order++] = PMX_VERTEX_WEIGHT_TYPE;
@@ -434,7 +529,7 @@ static pmx_int pmx_read_vertex( pmx_read * const _read, pmx_read_data_struct * c
 		span += 4;
 	}
 
-	_read->fseek_f( _read, _read->offsetVertex + startByte, PMX_READ_SEEK_SET );	
+	_read->fseek_f( _read, read->offsetVertex + startByte, PMX_READ_SEEK_SET );	
 
 	while ( ii < _struct->count ) {
 		pmx_int index = ii * span;
@@ -459,12 +554,12 @@ static pmx_int pmx_read_vertex( pmx_read * const _read, pmx_read_data_struct * c
 		}
 
 		if ( ( _struct->mask & PMX_VERTEX_ADDITIONAL_UV ) == PMX_VERTEX_ADDITIONAL_UV ) {
-			pmx_byte uvCount = _read->info.additionalUVCount;
+			pmx_byte uvCount = read->info.additionalUVCount;
 			while ( uvCount-- ) {
 				index += _read->fread_f( _read, &_struct->buffer[index], 16 );
 			}
 		} else {
-			_read->fseek_f( _read, 16 * _read->info.additionalUVCount, PMX_READ_SEEK_CUR );
+			_read->fseek_f( _read, 16 * read->info.additionalUVCount, PMX_READ_SEEK_CUR );
 		}
 		
 		_read->fread_f( _read, &wType, 1 );
@@ -477,37 +572,37 @@ static pmx_int pmx_read_vertex( pmx_read * const _read, pmx_read_data_struct * c
 		if ( ( _struct->mask & PMX_VERTEX_WEIGHT_TYPE ) == PMX_VERTEX_WEIGHT_TYPE ) {
 			switch ( wType ) {
 			case 0:
-				index += _read->fread_f( _read, &_struct->buffer[index], _read->isize.bone );
+				index += _read->fread_f( _read, &_struct->buffer[index], read->isize.bone );
 				break;
 			case 1:
-				index += _read->fread_f( _read, &_struct->buffer[index], _read->isize.bone * 2 + 4 );
+				index += _read->fread_f( _read, &_struct->buffer[index], read->isize.bone * 2 + 4 );
 				break;
 			case 2:
-				index += _read->fread_f( _read, &_struct->buffer[index], _read->isize.bone * 4 + 16 );
+				index += _read->fread_f( _read, &_struct->buffer[index], read->isize.bone * 4 + 16 );
 				break;
 			case 3:
-				index += _read->fread_f( _read, &_struct->buffer[index], _read->isize.bone * 2 + 40 );
+				index += _read->fread_f( _read, &_struct->buffer[index], read->isize.bone * 2 + 40 );
 				break;
 			default:
-				pmx_print( "Unknown BDEF\n" );
+				pmx_print_error( "read", "Unknown BDEF\n" );
 				break;
 			}
 		} else {
 			switch ( wType ) {
 			case 0:
-				_read->fseek_f( _read, _read->isize.bone, PMX_READ_SEEK_CUR );
+				_read->fseek_f( _read, read->isize.bone, PMX_READ_SEEK_CUR );
 				break;
 			case 1:
-				_read->fseek_f( _read, _read->isize.bone * 2 + 4, PMX_READ_SEEK_CUR );
+				_read->fseek_f( _read, read->isize.bone * 2 + 4, PMX_READ_SEEK_CUR );
 				break;
 			case 2:
-				_read->fseek_f( _read, _read->isize.bone * 4 + 16, PMX_READ_SEEK_CUR );
+				_read->fseek_f( _read, read->isize.bone * 4 + 16, PMX_READ_SEEK_CUR );
 				break;
 			case 3:
-				_read->fseek_f( _read, _read->isize.bone * 2 + 40, PMX_READ_SEEK_CUR );
+				_read->fseek_f( _read, read->isize.bone * 2 + 40, PMX_READ_SEEK_CUR );
 				break;
 			default:
-				pmx_print( "Unknown BDEF\n" );
+				pmx_print_error( "read", "Unknown BDEF\n" );
 				break;
 			}
 		}
@@ -533,13 +628,14 @@ pmx_int pmx_read_data( pmx_read * const _read, pmx_read_data_struct * const _str
 }
 
 static const char * pmx_read_alloc_str( pmx_read * const _read ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
 	pmx_text text;
 	char * outChars = PMX_NULL;
 
 	pmx_read_text( _read, &text );
 
-	if ( _read->info.textTypeEncoding ) {
-		outChars = ( char * )pmx_alloc( PMX_NULL, text.size + 1 );
+	if ( read->info.textTypeEncoding ) {
+		outChars = ( char * )pmx_read_scratch_alloc( _read, text.size + 1 );
 
 		memcpy( outChars, text.string.utf8, text.size );
 		outChars[text.size] = 0;
@@ -549,7 +645,7 @@ static const char * pmx_read_alloc_str( pmx_read * const _read ) {
 		pmx_int ii;
 		const pmx_int hSize = text.size / 2;
 
-		outChars = ( char * )pmx_alloc( PMX_NULL, hSize + 1 );
+		outChars = ( char * )pmx_read_scratch_alloc( _read, hSize + 1 );
 
 		for ( ii = 0; ii < hSize; ii++ ) {
 			outChars[ii] = text.string.utf8[ii * 2];
@@ -561,7 +657,59 @@ static const char * pmx_read_alloc_str( pmx_read * const _read ) {
 	return outChars;
 }
 
-const char * pmx_read_gets_minfo( pmx_read * const _read, const pmx_int _var ) {
+static const wchar_t * pmx_read_alloc_wstr( pmx_read * const _read ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	pmx_text text;
+	wchar_t * outChars = PMX_NULL;
+
+	pmx_read_text( _read, &text );
+
+	if ( read->info.textTypeEncoding ) {
+		pmx_int ii;
+
+		outChars = ( wchar_t * )pmx_read_scratch_alloc( _read, ( text.size * 2 ) + 2 );
+
+		for ( ii = 0; ii < text.size; ii++ ) {
+			outChars[ii] = ( wchar_t )text.string.utf8[ii];
+		}
+		outChars[text.size * 2] = 0;
+
+		pmx_alloc( text.string.utf8, 0 );
+	} else {
+		outChars = ( wchar_t * )pmx_read_scratch_alloc( _read, text.size + 2 );
+
+		memcpy( outChars, text.string.utf16, text.size );
+		outChars[text.size / 2] = 0;
+	}
+
+	return outChars;
+}
+
+static const char * pmx_read_gets_texture( pmx_read * const _read, const pmx_int _index ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	if ( _index < read->countTexture ) {
+		const pmx_int offset = pmx_read_sizeof_texture( _read, _index );
+		_read->fseek_f( _read, read->offsetTexture + offset, PMX_READ_SEEK_SET );
+
+		return pmx_read_alloc_str( _read );
+	}
+
+	return PMX_NULL;
+}
+
+static const wchar_t * pmx_read_getls_texture( pmx_read * const _read, const pmx_int _index ) {
+	pmx_read_private * const read = ( pmx_read_private * )_read;
+	if ( _index < read->countTexture ) {
+		const pmx_int offset = pmx_read_sizeof_texture( _read, _index );
+		_read->fseek_f( _read, read->offsetTexture + offset, PMX_READ_SEEK_SET );
+
+		return pmx_read_alloc_wstr( _read );
+	}
+
+	return PMX_NULL;
+}
+
+static const char * pmx_read_gets_minfo( pmx_read * const _read, const pmx_int _var ) {
 	pmx_int nameLocal, nameGlobal, commentLocal;
 	
 	_read->fseek_f( _read, PMX_OFFSET_MINFO, PMX_READ_SEEK_SET );
@@ -590,7 +738,32 @@ const char * pmx_read_gets_minfo( pmx_read * const _read, const pmx_int _var ) {
 	return PMX_NULL;
 }
 
-const wchar_t * pmx_read_getls_minfo( pmx_read * const _read, const pmx_int _var ) {
+static const wchar_t * pmx_read_getls_minfo( pmx_read * const _read, const pmx_int _var ) {
+	pmx_int nameLocal, nameGlobal, commentLocal;
+	
+	_read->fseek_f( _read, PMX_OFFSET_MINFO, PMX_READ_SEEK_SET );
+	if ( _var == PMX_MINFO_NAME_LOCAL ) {
+		return pmx_read_alloc_wstr( _read );
+	}
+
+	_read->fread_f( _read, &nameLocal, 4 );
+	_read->fseek_f( _read, nameLocal, PMX_READ_SEEK_CUR );
+	if ( _var == PMX_MINFO_NAME_GLOBAL ) {
+		return pmx_read_alloc_wstr( _read );
+	}
+
+	_read->fread_f( _read, &nameGlobal, 4 );
+	_read->fseek_f( _read, nameGlobal, PMX_READ_SEEK_CUR );
+	if ( _var == PMX_MINFO_COMMENT_LOCAL ) {
+		return pmx_read_alloc_wstr( _read );
+	}
+
+	_read->fread_f( _read, &commentLocal, 4 );
+	_read->fseek_f( _read, commentLocal, PMX_READ_SEEK_CUR );
+	if ( _var == PMX_MINFO_COMMENT_GLOBAL ) {
+		return pmx_read_alloc_wstr( _read );
+	}
+	
 	return PMX_NULL;
 }
 
@@ -598,6 +771,8 @@ const char * pmx_read_gets( pmx_read * const _read, const pmx_int _type, const p
 	switch ( _type ) {
 	case PMX_DATA_MINFO:
 		return pmx_read_gets_minfo( _read, _var );
+	case PMX_DATA_TEXTURE:
+		return pmx_read_gets_texture( _read, _index );
 	}
 	return PMX_NULL;
 }
@@ -606,6 +781,8 @@ const wchar_t * pmx_read_getls( pmx_read * const _read, const pmx_int _type, con
 	switch ( _type ) {
 	case PMX_DATA_MINFO:
 		return pmx_read_getls_minfo( _read, _var );
+	case PMX_DATA_TEXTURE:
+		return pmx_read_getls_texture( _read, _index );
 	}
 	return PMX_NULL;
 }

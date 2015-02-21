@@ -146,7 +146,7 @@
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="pmx_static_lib.vcxproj">
+    <ProjectReference Include="pmx.vcxproj">
       <Project>{1a0c2bf3-f764-4cc7-b237-7f240cf8be98}</Project>
     </ProjectReference>
   </ItemGroup>

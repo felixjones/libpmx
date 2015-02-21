@@ -19,7 +19,6 @@ enum pmx_read_seek_e {
 
 enum pmx_data_e {
 	PMX_DATA_MINFO		= ( ( 'M' << 24 ) | ( 'I' << 16 ) | ( 'F' << 8 ) | 'O' ),
-
 	PMX_DATA_VERTEX		= ( ( 'V' << 24 ) | ( 'R' << 16 ) | ( 'T' << 8 ) | 'X' ),
 	PMX_DATA_FACE		= ( ( 'F' << 24 ) | ( 'A' << 16 ) | ( 'C' << 8 ) | 'E' ),
 	PMX_DATA_TEXTURE	= ( ( 'T' << 24 ) | ( 'X' << 16 ) | ( 'U' << 8 ) | 'E' ),
@@ -41,21 +40,6 @@ typedef struct pmx_read_s {
 	pmx_read_fread_t	fread_f;
 	pmx_read_fseek_t	fseek_f;
 	pmx_read_ftell_t	ftell_f;
-	
-	pmx_header			header;
-	pmx_info			info;
-	pmx_isize			isize;
-	pmx_minfo			minfo;
-
-	pmx_int				offsetVertex;
-	pmx_int				offsetFace;
-	pmx_int				offsetTexture;
-	pmx_int				offsetMaterial;
-	
-	pmx_int				countVertex;
-	pmx_int				countFace;
-	pmx_int				countTexture;
-	pmx_int				countMaterial;
 } pmx_read;
 
 typedef struct pmx_read_data_struct_s {
