@@ -71,5 +71,6 @@
     <ClInclude Include="include\pmx_weight.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="src\pmx_read_static.h" />
   </ItemGroup>
 </Project>

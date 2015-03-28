@@ -41,6 +41,7 @@
     <ClInclude Include="include\pmx_text.h" />
     <ClInclude Include="include\pmx_vertex.h" />
     <ClInclude Include="include\pmx_weight.h" />
+    <ClInclude Include="src\pmx_read_static.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1A0C2BF3-F764-4CC7-B237-7F240CF8BE98}</ProjectGuid>

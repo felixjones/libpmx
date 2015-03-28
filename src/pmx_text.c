@@ -47,7 +47,7 @@ pmx_int pmx_text_char( const pmx_text * const _text, const pmx_info * const _inf
         
         
         for ( retVal = 0; retVal < sizeChar; retVal++ ) {
-            _dest[retVal] = _text->string.utf16[retVal * 2];
+            _dest[retVal] = ( char )_text->string.utf16[retVal * 2];
         }
         _dest[retVal] = 0;
 	}
