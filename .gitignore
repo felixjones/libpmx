@@ -3,6 +3,7 @@ libpmx/
 bin/
 lib/
 IA/
+IAx/
 
 # Created by https://www.gitignore.io
 
