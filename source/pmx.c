@@ -6,17 +6,38 @@
 #include <float.h>
 #include <string.h>
 
+/*
+===============================================================================
+
+	Vec2
+
+===============================================================================
+*/
 typedef struct pmx_vec2_s {
 	float	x;
 	float	y;
 } pmx_vec2_t;
 
+/*
+===============================================================================
+
+	Vec3
+
+===============================================================================
+*/
 typedef struct pmx_vec3_s {
 	float	x;
 	float	y;
 	float	z;
 } pmx_vec3_t;
 
+/*
+===============================================================================
+
+	Vec4
+
+===============================================================================
+*/
 typedef struct pmx_vec4_s {
 	float	x;
 	float	y;
@@ -26,6 +47,13 @@ typedef struct pmx_vec4_s {
 
 typedef struct pmx_weight_deform_s *	pmx_weight_deform;
 
+/*
+===============================================================================
+
+	Vertex data
+
+===============================================================================
+*/
 struct pmx_vertex_data_s {
 	pmx_vec3_t			position;
 	pmx_vec3_t			normal;
@@ -38,6 +66,13 @@ struct pmx_vertex_data_s {
 
 typedef struct pmx_vertex_data_s *	pmx_vertex_data;
 
+/*
+===============================================================================
+
+	libpmx
+
+===============================================================================
+*/
 struct pmx_struct_s {
 	pmx_log_f		log_error;
 	pmx_log_f		log_warning;
@@ -49,6 +84,13 @@ struct pmx_struct_s {
 	pmx_alloc_f		alloc;
 };
 
+/*
+===============================================================================
+
+	PMX model info
+
+===============================================================================
+*/
 struct pmx_info_s {
 	char			global_count;
 	char *			globals;
@@ -68,11 +110,25 @@ struct pmx_info_s {
 static const char PMX_SIGNATURE[] = { 0x50, 0x4D, 0x58, 0x20 };
 static const float PMX_VALID_VER[] = { 2.0f, 2.1f };
 
+/*
+====================
+pmx_float_cmp
+
+	Compares floats within range of FLT_EPSILON
+====================
+*/
 __inline static int pmx_float_cmp( const float _a, const float _b ) {
 	return ( fabsf( _a - _b ) > FLT_EPSILON );
 }
 
-__inline static int pmx_ver_cmp( const float _ver ) {
+/*
+====================
+pmx_ver_index
+
+	Returns an index from 0 to index count of PMX_VALID_VER
+====================
+*/
+__inline static int pmx_ver_index( const float _ver ) {
 	int ii;
 	for ( ii = 0; ii < 2; ii++ ) {
 		if ( pmx_float_cmp( _ver, PMX_VALID_VER[ii] ) == 0 ) {
@@ -82,14 +138,35 @@ __inline static int pmx_ver_cmp( const float _ver ) {
 	return -1;
 }
 
+/*
+====================
+pmx_std_fread
+
+	std::fread forward op
+====================
+*/
 static size_t pmx_std_fread( void * const _dest, const size_t _size, void * const _io_ptr ) {
 	return fread( _dest, 1, _size, _io_ptr );
 }
 
+/*
+====================
+pmx_std_fseek
+
+	std::fseek forward op
+====================
+*/
 static int pmx_std_fseek( void * const _io_ptr, const long int _offset, const int _origin ) {
 	return fseek( _io_ptr, _offset, _origin );
 }
 
+/*
+====================
+pmx_std_alloc
+
+	Either reallocs or frees memory
+====================
+*/
 static void * pmx_std_alloc( void * const _ptr, const size_t _size ) {
 	if ( _size ) {
 		return realloc( _ptr, _size );
@@ -98,6 +175,13 @@ static void * pmx_std_alloc( void * const _ptr, const size_t _size ) {
 	return NULL;
 }
 
+/*
+====================
+pmx_header_version
+
+	Returns PMX version from a header
+====================
+*/
 float pmx_header_version( char * const _bytes, const int _length ) {
 	if ( _length < PMX_HEAD_LEN ) {
 		goto HEADER_FAIL;
@@ -117,10 +201,24 @@ HEADER_FAIL:
 	return 0.0f;
 }
 
+/*
+====================
+pmx_create_read_struct
+
+	Returns a structure made for READING a PMX file
+====================
+*/
 pmx_struct pmx_create_read_struct( const float _version, pmx_log_f _log_error, pmx_log_f _log_warning, void * const _log_uptr ) {
 	return pmx_create_read_struct_alloc( _version, _log_error, _log_warning, _log_uptr, pmx_std_alloc );
 }
 
+/*
+====================
+pmx_create_read_struct_alloc
+
+	pmx_create_read_struct with a custom allocator
+====================
+*/
 pmx_struct pmx_create_read_struct_alloc( const float _version, pmx_log_f _log_error, pmx_log_f _log_warning, void * const _log_uptr, pmx_alloc_f _alloc ) {
 	pmx_struct const pmx = ( pmx_struct )_alloc( NULL, sizeof( struct pmx_struct_s ) );
 
@@ -138,10 +236,24 @@ pmx_struct pmx_create_read_struct_alloc( const float _version, pmx_log_f _log_er
 	return pmx;
 }
 
+/*
+====================
+pmx_destroy_read_struct
+
+	Deallocates a given read struct
+====================
+*/
 void pmx_destroy_read_struct( pmx_struct _pmx ) {
 	_pmx->alloc( _pmx, 0 );
 }
 
+/*
+====================
+pmx_create_info_struct
+
+	Allocates a global info structure
+====================
+*/
 pmx_info pmx_create_info_struct( pmx_struct _pmx ) {
 	pmx_info const info = ( pmx_info )_pmx->alloc( NULL, sizeof( struct pmx_info_s ) );
 	
@@ -165,6 +277,13 @@ pmx_info pmx_create_info_struct( pmx_struct _pmx ) {
 	return info;
 }
 
+/*
+====================
+pmx_destroy_info_struct
+
+	Deallocates a global info structure
+====================
+*/
 void pmx_destroy_info_struct( pmx_struct _pmx, pmx_info _info ) {
 	_pmx->alloc( _info->globals, 0 );
 	
@@ -177,14 +296,35 @@ void pmx_destroy_info_struct( pmx_struct _pmx, pmx_info _info ) {
 	_pmx->alloc( _info, 0 );
 }
 
+/*
+====================
+pmx_init_io
+
+	Sets the internal io "file" pointer
+====================
+*/
 void pmx_init_io( pmx_struct _pmx, void * const _io_ptr ) {
 	_pmx->io_ptr = _io_ptr;
 }
 
+/*
+====================
+pmx_set_head_bytes
+
+	Moves the io cursor to describe how many header "bytes" have been read
+====================
+*/
 void pmx_set_head_bytes( pmx_struct _pmx, const char _bytes ) {
 	_pmx->io_cur = _bytes;
 }
 
+/*
+====================
+pmx_read_info
+
+	Reads an entire info struct from current PMX file
+====================
+*/
 void pmx_read_info( pmx_struct _pmx, pmx_info _info ) {
 	_pmx->io_seek( _pmx->io_ptr, PMX_HEAD_LEN - ( long int )_pmx->io_cur, SEEK_CUR );
 	_pmx->io_cur = PMX_HEAD_LEN;
@@ -221,6 +361,13 @@ void pmx_read_info( pmx_struct _pmx, pmx_info _info ) {
 
 }
 
+/*
+====================
+pmx_get_global
+
+	Returns a global byte variable
+====================
+*/
 char pmx_get_global( pmx_struct _pmx, pmx_info _info, const char _index ) {
 	if ( !_info->globals ) {
 		pmx_read_info( _pmx, _info );
@@ -228,6 +375,13 @@ char pmx_get_global( pmx_struct _pmx, pmx_info _info, const char _index ) {
 	return _info->globals[_index];
 }
 
+/*
+====================
+pmx_read_text
+
+	Reads text into a UTF8 string
+====================
+*/
 int pmx_read_text( const char _enc, char * const _dest, const int _dest_len, const char * const _src, const int _src_len ) {
 	if ( _enc ) {
 		// utf8
@@ -255,6 +409,13 @@ int pmx_read_text( const char _enc, char * const _dest, const int _dest_len, con
 	}
 }
 
+/*
+====================
+pmx_read_text
+
+	Reads text into a UTF16LE string
+====================
+*/
 int pmx_read_text_16le( const char _enc, short * const _dest, const int _dest_len, const short * const _src, const int _src_len ) {
 	if ( _enc ) {
 		// utf8
@@ -282,6 +443,13 @@ int pmx_read_text_16le( const char _enc, short * const _dest, const int _dest_le
 	}
 }
 
+/*
+====================
+pmx_read_local_name
+
+	Reads the local (usually Japanese) PMX name into a given UTF8 buffer
+====================
+*/
 int pmx_read_local_name( pmx_struct _pmx, pmx_info _info, char * const _buffer, const int _length ) {
 	if ( !_info->local_name ) {
 		pmx_read_info( _pmx, _info );
@@ -292,6 +460,13 @@ int pmx_read_local_name( pmx_struct _pmx, pmx_info _info, char * const _buffer, 
 	return pmx_read_text( _info->globals[0], _buffer, _length, _info->local_name, _info->local_name_len );
 }
 
+/*
+====================
+pmx_read_universal_name
+
+	Reads the universal (usually English) PMX name into a given UTF8 buffer
+====================
+*/
 int pmx_read_universal_name( pmx_struct _pmx, pmx_info _info, char * const _buffer, const int _length ) {
 	if ( !_info->universal_name ) {
 		pmx_read_info( _pmx, _info );
@@ -302,6 +477,13 @@ int pmx_read_universal_name( pmx_struct _pmx, pmx_info _info, char * const _buff
 	return pmx_read_text( _info->globals[0], _buffer, _length, _info->universal_name, _info->universal_name_len );
 }
 
+/*
+====================
+pmx_read_local_comment
+
+	Reads the local (usually Japanese) PMX comment into a given UTF8 buffer
+====================
+*/
 int pmx_read_local_comment( pmx_struct _pmx, pmx_info _info, char * const _buffer, const int _length ) {
 	if ( !_info->local_comment ) {
 		pmx_read_info( _pmx, _info );
@@ -312,6 +494,13 @@ int pmx_read_local_comment( pmx_struct _pmx, pmx_info _info, char * const _buffe
 	return pmx_read_text( _info->globals[0], _buffer, _length, _info->local_comment, _info->local_comment_len );
 }
 
+/*
+====================
+pmx_read_universal_comment
+
+	Reads the universal (usually English) PMX comment into a given UTF8 buffer
+====================
+*/
 int pmx_read_universal_comment( pmx_struct _pmx, pmx_info _info, char * const _buffer, const int _length ) {
 	if ( !_info->universal_comment ) {
 		pmx_read_info( _pmx, _info );
@@ -322,6 +511,13 @@ int pmx_read_universal_comment( pmx_struct _pmx, pmx_info _info, char * const _b
 	return pmx_read_text( _info->globals[0], _buffer, _length, _info->universal_comment, _info->universal_comment_len );
 }
 
+/*
+====================
+pmx_read_local_name_16le
+
+	Reads the local (usually Japanese) PMX name into a given UTF16LE buffer
+====================
+*/
 int pmx_read_local_name_16le( pmx_struct _pmx, pmx_info _info, short * const _buffer, const int _length ) {
 	if ( !_info->local_name ) {
 		pmx_read_info( _pmx, _info );
@@ -332,6 +528,13 @@ int pmx_read_local_name_16le( pmx_struct _pmx, pmx_info _info, short * const _bu
 	return pmx_read_text_16le( _info->globals[0], _buffer, _length, ( short * )_info->local_name, _info->local_name_len );
 }
 
+/*
+====================
+pmx_read_universal_name_16le
+
+	Reads the universal (usually English) PMX name into a given UTF16LE buffer
+====================
+*/
 int pmx_read_universal_name_16le( pmx_struct _pmx, pmx_info _info, short * const _buffer, const int _length ) {
 	if ( !_info->universal_name ) {
 		pmx_read_info( _pmx, _info );
@@ -342,6 +545,13 @@ int pmx_read_universal_name_16le( pmx_struct _pmx, pmx_info _info, short * const
 	return pmx_read_text_16le( _info->globals[0], _buffer, _length, ( short * )_info->universal_name, _info->universal_name_len );
 }
 
+/*
+====================
+pmx_read_local_comment_16le
+
+	Reads the local (usually Japanese) PMX name into a given UTF8 buffer
+====================
+*/
 int pmx_read_local_comment_16le( pmx_struct _pmx, pmx_info _info, short * const _buffer, const int _length ) {
 	if ( !_info->local_comment ) {
 		pmx_read_info( _pmx, _info );
@@ -352,6 +562,13 @@ int pmx_read_local_comment_16le( pmx_struct _pmx, pmx_info _info, short * const 
 	return pmx_read_text_16le( _info->globals[0], _buffer, _length, ( short * )_info->local_comment, _info->local_comment_len );
 }
 
+/*
+====================
+pmx_read_universal_comment_16le
+
+	Reads the universal (usually English) PMX name into a given UTF8 buffer
+====================
+*/
 int pmx_read_universal_comment_16le( pmx_struct _pmx, pmx_info _info, short * const _buffer, const int _length ) {
 	if ( !_info->universal_comment ) {
 		pmx_read_info( _pmx, _info );

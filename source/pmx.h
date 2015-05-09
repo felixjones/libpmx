@@ -12,33 +12,89 @@ typedef int						( * pmx_io_seek_f )( void * const _io_ptr, const long int _offs
 typedef size_t					( * pmx_io_read_f )( void * const _dest, const size_t _size, void * const _io_ptr );
 typedef void *					( * pmx_alloc_f )( void * const _ptr, const size_t _size );
 
+/*
+===============================================================================
+
+	Header
+
+===============================================================================
+*/
 float		pmx_header_version( char * const _bytes, const int _length );
 
+/*
+===============================================================================
+
+	Read struct
+
+===============================================================================
+*/
 pmx_struct	pmx_create_read_struct( const float _version, pmx_log_f _log_error, pmx_log_f _log_warning, void * const _log_uptr );
 pmx_struct	pmx_create_read_struct_alloc( const float _version, pmx_log_f _log_error, pmx_log_f _log_warning, void * const _log_uptr, pmx_alloc_f _alloc );
 void		pmx_destroy_read_struct( pmx_struct _pmx );
 
+/*
+===============================================================================
+
+	Info struct
+
+===============================================================================
+*/
 pmx_info	pmx_create_info_struct( pmx_struct _pmx );
 void		pmx_destroy_info_struct( pmx_struct _pmx, pmx_info _info );
 
+/*
+===============================================================================
+
+	File IO
+
+===============================================================================
+*/
 void		pmx_init_io( pmx_struct _pmx, void * const _io_ptr );
 void		pmx_set_head_bytes( pmx_struct _pmx, const char _bytes );
 void		pmx_read_info( pmx_struct _pmx, pmx_info _info );
 
+/*
+===============================================================================
+
+	Globals
+
+===============================================================================
+*/
 char		pmx_get_global( pmx_struct _pmx, pmx_info _info, const char _index );
 int			pmx_read_text( const char _enc, char * const _dest, const int _dest_len, const char * const _src, const int _src_len );
 int			pmx_read_text_16le( const char _enc, short * const _dest, const int _dest_len, const short * const _src, const int _src_len );
 
+/*
+===============================================================================
+
+	UTF8 names and comments
+
+===============================================================================
+*/
 int			pmx_read_local_name( pmx_struct _pmx, pmx_info _info, char * const _buffer, const int _length );
 int			pmx_read_universal_name( pmx_struct _pmx, pmx_info _info, char * const _buffer, const int _length );
 int			pmx_read_local_comment( pmx_struct _pmx, pmx_info _info, char * const _buffer, const int _length );
 int			pmx_read_universal_comment( pmx_struct _pmx, pmx_info _info, char * const _buffer, const int _length );
 
+/*
+===============================================================================
+
+	UTF16LE names and comments
+
+===============================================================================
+*/
 int			pmx_read_local_name_16le( pmx_struct _pmx, pmx_info _info, short * const _buffer, const int _length );
 int			pmx_read_universal_name_16le( pmx_struct _pmx, pmx_info _info, short * const _buffer, const int _length );
 int			pmx_read_local_comment_16le( pmx_struct _pmx, pmx_info _info, short * const _buffer, const int _length );
 int			pmx_read_universal_comment_16le( pmx_struct _pmx, pmx_info _info, short * const _buffer, const int _length );
 
+/*
+===============================================================================
+
+	In-built global getters
+
+===============================================================================
+*/
 __inline static char pmx_get_text_encoding( pmx_struct _pmx, pmx_info _info ) {
 	return pmx_get_global( _pmx, _info, 0 );
 }
